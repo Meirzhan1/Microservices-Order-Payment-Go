@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"order-service/internal/domain"
-	"order-service/internal/transport/httpclient"
 	"time"
 
 	"github.com/google/uuid"
@@ -25,7 +24,7 @@ type OrderRepository interface {
 }
 
 type PaymentClient interface {
-	CreatePayment(ctx context.Context, orderID string, amount int64) (*httpclient.CreatePaymentResponse, error)
+	CreatePayment(ctx context.Context, orderID string, amount int64) (string, error)
 }
 
 type OrderUseCase struct {
@@ -74,7 +73,7 @@ func (uc *OrderUseCase) CreateOrder(ctx context.Context, input CreateOrderInput)
 		return nil, err
 	}
 
-	paymentResp, err := uc.paymentClient.CreatePayment(ctx, order.ID, order.Amount)
+	paymentStatus, err := uc.paymentClient.CreatePayment(ctx, order.ID, order.Amount)
 	if err != nil {
 		_ = uc.repo.UpdateStatus(ctx, order.ID, domain.OrderStatusFailed, time.Now().UTC())
 		order.Status = domain.OrderStatusFailed
@@ -82,7 +81,7 @@ func (uc *OrderUseCase) CreateOrder(ctx context.Context, input CreateOrderInput)
 		return order, ErrPaymentUnavailable
 	}
 
-	if paymentResp.Status == "Authorized" {
+	if paymentStatus == "Authorized" {
 		order.Status = domain.OrderStatusPaid
 	} else {
 		order.Status = domain.OrderStatusFailed

@@ -3,7 +3,6 @@ package app
 import (
 	"database/sql"
 	"fmt"
-	"net/http"
 	"order-service/internal/repository"
 	httptransport "order-service/internal/transport/http"
 	"order-service/internal/transport/httpclient"
@@ -15,22 +14,24 @@ import (
 )
 
 type Config struct {
-	Port              string
-	DBDSN             string
-	PaymentServiceURL string
+	Port                   string
+	DBDSN                  string
+	PaymentServiceGRPCAddr string
 }
 
-func NewRouter(db *sql.DB, paymentServiceURL string) *gin.Engine {
+func NewRouter(db *sql.DB, paymentServiceGRPCAddr string) (*gin.Engine, error) {
 	r := gin.Default()
 
-	sharedHTTPClient := &http.Client{Timeout: 2 * time.Second}
-	paymentClient := httpclient.NewHTTPPaymentClient(paymentServiceURL, sharedHTTPClient)
+	paymentClient, err := httpclient.NewGRPCPaymentClient(paymentServiceGRPCAddr, 2*time.Second)
+	if err != nil {
+		return nil, err
+	}
 	repo := repository.NewPostgresOrderRepository(db)
 	uc := usecase.NewOrderUseCase(repo, paymentClient)
 	handler := httptransport.NewHandler(uc)
 	handler.RegisterRoutes(r)
 
-	return r
+	return r, nil
 }
 
 func OpenDB(dsn string) (*sql.DB, error) {
