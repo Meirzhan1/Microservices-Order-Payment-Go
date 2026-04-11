@@ -8,6 +8,7 @@ import (
 
 func main() {
 	port := getEnv("PAYMENT_SERVICE_PORT", "8082")
+	grpcPort := getEnv("PAYMENT_SERVICE_GRPC_PORT", "50051")
 	dsn := getEnv("PAYMENT_DB_DSN", "postgres://postgres:postgres@localhost:5432/payment_db?sslmode=disable")
 
 	db, err := app.OpenDB(dsn)
@@ -15,6 +16,12 @@ func main() {
 		log.Fatalf("failed to connect payment database: %v", err)
 	}
 	defer db.Close()
+
+	go func() {
+		if err := app.RunGRPCServer(db, grpcPort); err != nil {
+			log.Fatalf("failed to start payment gRPC service: %v", err)
+		}
+	}()
 
 	router := app.NewRouter(db)
 	if err := router.Run(app.Addr(port)); err != nil {

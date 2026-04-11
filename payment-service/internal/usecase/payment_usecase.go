@@ -11,6 +11,16 @@ import (
 
 var ErrInvalidAmount = errors.New("amount must be > 0")
 
+type ProcessPaymentResult struct {
+	ID            string
+	OrderID       string
+	TransactionID string
+	Amount        int64
+	Status        string
+	DeclineReason string
+	CreatedAt     time.Time
+}
+
 type PaymentRepository interface {
 	Create(ctx context.Context, payment *domain.Payment) error
 	GetByOrderID(ctx context.Context, orderID string) (*domain.Payment, error)
@@ -66,4 +76,21 @@ func (uc *PaymentUseCase) CreatePayment(ctx context.Context, input CreatePayment
 
 func (uc *PaymentUseCase) GetByOrderID(ctx context.Context, orderID string) (*domain.Payment, error) {
 	return uc.repo.GetByOrderID(ctx, orderID)
+}
+
+func (uc *PaymentUseCase) ProcessPayment(ctx context.Context, input CreatePaymentInput) (*ProcessPaymentResult, error) {
+	payment, err := uc.CreatePayment(ctx, input)
+	if err != nil {
+		return nil, err
+	}
+
+	return &ProcessPaymentResult{
+		ID:            payment.ID,
+		OrderID:       payment.OrderID,
+		TransactionID: payment.TransactionID,
+		Amount:        payment.Amount,
+		Status:        payment.Status,
+		DeclineReason: payment.DeclineReason,
+		CreatedAt:     payment.CreatedAt,
+	}, nil
 }
