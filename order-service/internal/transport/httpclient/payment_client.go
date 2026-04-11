@@ -1,66 +1,43 @@
 package httpclient
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
 	"fmt"
-	"net/http"
+	"time"
+
+	paymentv1 "github.com/Meirzhan1/microservices-order-payment-contracts-generated/gen/go/proto/payment/v1"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 )
 
-type PaymentClient interface {
-	CreatePayment(ctx context.Context, orderID string, amount int64) (*CreatePaymentResponse, error)
+type GRPCPaymentClient struct {
+	client  paymentv1.PaymentServiceClient
+	timeout time.Duration
 }
 
-type HTTPPaymentClient struct {
-	baseURL string
-	client  *http.Client
-}
-
-func NewHTTPPaymentClient(baseURL string, client *http.Client) *HTTPPaymentClient {
-	return &HTTPPaymentClient{baseURL: baseURL, client: client}
-}
-
-type createPaymentRequest struct {
-	OrderID string `json:"order_id"`
-	Amount  int64  `json:"amount"`
-}
-
-type CreatePaymentResponse struct {
-	ID            string `json:"id"`
-	OrderID       string `json:"order_id"`
-	TransactionID string `json:"transaction_id"`
-	Amount        int64  `json:"amount"`
-	Status        string `json:"status"`
-	DeclineReason string `json:"decline_reason"`
-}
-
-func (c *HTTPPaymentClient) CreatePayment(ctx context.Context, orderID string, amount int64) (*CreatePaymentResponse, error) {
-	body, err := json.Marshal(createPaymentRequest{OrderID: orderID, Amount: amount})
+func NewGRPCPaymentClient(addr string, timeout time.Duration) (*GRPCPaymentClient, error) {
+	conn, err := grpc.Dial(addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to dial payment gRPC service: %w", err)
 	}
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.baseURL+"/payments", bytes.NewBuffer(body))
+	return &GRPCPaymentClient{
+		client:  paymentv1.NewPaymentServiceClient(conn),
+		timeout: timeout,
+	}, nil
+}
+
+func (c *GRPCPaymentClient) CreatePayment(ctx context.Context, orderID string, amount int64) (string, error) {
+	callCtx, cancel := context.WithTimeout(ctx, c.timeout)
+	defer cancel()
+
+	resp, err := c.client.ProcessPayment(callCtx, &paymentv1.PaymentRequest{
+		OrderId: orderID,
+		Amount:  amount,
+	})
 	if err != nil {
-		return nil, err
-	}
-	req.Header.Set("Content-Type", "application/json")
-
-	resp, err := c.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("payment service returned status %d", resp.StatusCode)
+		return "", err
 	}
 
-	var parsed CreatePaymentResponse
-	if err := json.NewDecoder(resp.Body).Decode(&parsed); err != nil {
-		return nil, err
-	}
-
-	return &parsed, nil
+	return resp.GetStatus(), nil
 }
