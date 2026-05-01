@@ -10,11 +10,12 @@ const (
 )
 
 type Order struct {
-	ID         string
-	CustomerID string
-	ItemName   string
-	Amount     int64
-	Status     string
-	CreatedAt  time.Time
-	UpdatedAt  time.Time
+	ID            string
+	CustomerID    string
+	CustomerEmail string
+	ItemName      string
+	Amount        int64
+	Status        string
+	CreatedAt     time.Time
+	UpdatedAt     time.Time
 }

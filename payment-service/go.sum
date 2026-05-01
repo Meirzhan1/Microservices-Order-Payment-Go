@@ -1,5 +1,5 @@
-github.com/Meirzhan1/microservices-order-payment-contracts-generated v1.0.0 h1:SpIwj5x9p2HzUfXyD/aOSvc1PlkV5FCK1XJFUijx4Wc=
-github.com/Meirzhan1/microservices-order-payment-contracts-generated v1.0.0/go.mod h1:ueWDMUqlt0+0+Kzl+yXmWQ0B9l1/lSfQm5OilLVZMSA=
+github.com/Meirzhan1/microservices-order-payment-contracts-generated v1.1.0 h1:tmSDH9HvOHGEVgLOrRu7ID7BdUt6JpAqz0f+KdihQ9Y=
+github.com/Meirzhan1/microservices-order-payment-contracts-generated v1.1.0/go.mod h1:ueWDMUqlt0+0+Kzl+yXmWQ0B9l1/lSfQm5OilLVZMSA=
 github.com/bytedance/sonic v1.11.6 h1:oUp34TzMlL+OY1OUWxHqsdkgC/Zfc85zGqw9siXjrc0=
 github.com/bytedance/sonic v1.11.6/go.mod h1:LysEHSvpvDySVdC2f87zGWf6CIKJcAvqab1ZaiQtds4=
 github.com/bytedance/sonic/loader v0.1.1 h1:c+e5Pt1k/cy5wMveRDyk2X4B9hF4g7an8N3zCYjJFNM=
@@ -53,6 +53,8 @@ github.com/pelletier/go-toml/v2 v2.2.2 h1:aYUidT7k73Pcl9nb2gScu7NSrKCSHIDE89b3+6
 github.com/pelletier/go-toml/v2 v2.2.2/go.mod h1:1t835xjRzz80PqgE6HHgN2JOsmgYu/h4qDAS4n929Rs=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
+github.com/rabbitmq/amqp091-go v1.11.0 h1:HxIctVm9Gid/Vtn706necmZ7Wj6pgGI2eqplRbEY8O8=
+github.com/rabbitmq/amqp091-go v1.11.0/go.mod h1:Hy4jKW5kQART1u+JkDTF9YYOQUHXqMuhrgxOEeS7G4o=
 github.com/stretchr/objx v0.1.0/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+wExME=
 github.com/stretchr/objx v0.4.0/go.mod h1:YvHI0jy2hoMjB+UWwv71VJQ9isScKT/TqJzVSSt89Yw=
 github.com/stretchr/objx v0.5.0/go.mod h1:Yh+to48EsGEfYuaHDzXPcE3xhTkx73EhmCGUpEOglKo=

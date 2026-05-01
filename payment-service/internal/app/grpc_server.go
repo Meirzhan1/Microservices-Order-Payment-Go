@@ -11,11 +11,12 @@ import (
 
 	paymentv1 "github.com/Meirzhan1/microservices-order-payment-contracts-generated/gen/go/proto/payment/v1"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/reflection"
 )
 
-func RunGRPCServer(db *sql.DB, port string) error {
+func RunGRPCServer(db *sql.DB, producer usecase.PaymentEventProducer, port string) error {
 	repo := repository.NewPostgresPaymentRepository(db)
-	uc := usecase.NewPaymentUseCase(repo)
+	uc := usecase.NewPaymentUseCase(repo, producer)
 	serverImpl := grpcTransport.NewPaymentGRPCServer(uc)
 
 	lis, err := net.Listen("tcp", fmt.Sprintf(":%s", port))
@@ -25,6 +26,7 @@ func RunGRPCServer(db *sql.DB, port string) error {
 
 	grpcServer := grpc.NewServer(grpc.UnaryInterceptor(grpcTransport.LoggingUnaryInterceptor()))
 	paymentv1.RegisterPaymentServiceServer(grpcServer, serverImpl)
+	reflection.Register(grpcServer)
 
 	log.Printf("payment gRPC server started on :%s", port)
 	return grpcServer.Serve(lis)

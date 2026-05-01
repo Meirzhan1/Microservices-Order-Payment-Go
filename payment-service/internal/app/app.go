@@ -16,10 +16,10 @@ type Config struct {
 	DBDSN string
 }
 
-func NewRouter(db *sql.DB) *gin.Engine {
+func NewRouter(db *sql.DB, producer usecase.PaymentEventProducer) *gin.Engine {
 	r := gin.Default()
 	repo := repository.NewPostgresPaymentRepository(db)
-	uc := usecase.NewPaymentUseCase(repo)
+	uc := usecase.NewPaymentUseCase(repo, producer)
 	handler := httptransport.NewHandler(uc)
 	handler.RegisterRoutes(r)
 	return r

@@ -1,4 +1,4 @@
-# AP2 Assignment 2 — gRPC Migration & Contract-First
+# AP2 Assignment 3 — Event-Driven Architecture (EDA)
 
 This repository contains the solution for Assignment 2, demonstrating the migration from REST inter-service communication to gRPC using a Contract-First approach.
 
@@ -8,66 +8,49 @@ The gRPC contracts (`.proto` files) and their generated Go code are maintained i
 - **Generated Go code:** [microservices-order-payment-contracts-generated](https://github.com/Meirzhan1/microservices-order-payment-contracts-generated)
 
 ## 🚀 Features & Requirements Covered
-- **Order Service:** Keeps the external REST API but now calls Payment Service internally via a gRPC client.
-- **Payment Service:** Exposes a gRPC server (`ProcessPayment`) instead of REST.
-- **Server-Side Streaming:** The Order service hosts a gRPC stream (`SubscribeToOrderUpdates`) that pushes real-time status updates based on actual database changes.
-- **Interceptors:** Implemented a Unary Interceptor on the Payment server to log method names and execution duration.
-- **Proto Standards:** Used `go_package` and appropriate types like `google.protobuf.Timestamp`.
-- **Environment Variables:** All ports and DSNs are configurable.
+- **Order Service:** Maintains REST API and gRPC updates stream. Now passes `customer_email` to Payment Service.
+- **Payment Service:** Publishes `payment.completed` event to RabbitMQ after successful payment.
+- **Notification Service:** Asynchronously consumes payment events and simulates sending emails.
+- **RabbitMQ:** Acts as the message broker with durable queues and manual acknowledgments.
+- **Dead Letter Queue (DLQ):** Implemented for handling failed message processing.
+- **Idempotency:** Notification service filters duplicate messages based on Order ID.
+- **Graceful Shutdown:** All services handle termination signals to close connections properly.
+- **Docker Compose:** Full environment orchestration.
 
 ## 🏛 Architecture
 ```mermaid
-flowchart LR
-  Client --> OREST[Order REST :8081]
-  OREST --> OUC[Order UseCase]
-  OUC --> ODB[(order_db)]
-  OUC -->|gRPC ProcessPayment| PGRPC[Payment gRPC :50051]
-  PGRPC --> PUC[Payment UseCase]
-  PUC --> PDB[(payment_db)]
-
-  StreamClient --> OGRPC[Order gRPC :50052 Stream Updates]
-  OGRPC --> OUC
+flowchart TD
+  Client -->|REST| O[Order Service]
+  O -->|gRPC| P[Payment Service]
+  P -->|Publish| RMQ[RabbitMQ]
+  RMQ -->|Consume| N[Notification Service]
+  N -->|Log| Console[Console / Email Sim]
+  
+  O --> ODB[(Order DB)]
+  P --> PDB[(Payment DB)]
+  
+  RMQ -.-> DLQ[Dead Letter Queue]
 ```
 
-## 🛠 How To Run
-
-### 1. Database Migrations
+### 4. Running with Docker Compose
 ```bash
-psql "postgres://postgres:postgres@localhost:5432/order_db?sslmode=disable" -f order-service/migrations/001_create_orders.sql
-psql "postgres://postgres:postgres@localhost:5432/payment_db?sslmode=disable" -f payment-service/migrations/001_create_payments.sql
+docker-compose up --build
 ```
 
-### 2. Start Services
-**Payment Service:**
-```bash
-cd payment-service
-set PAYMENT_SERVICE_PORT=8082
-set PAYMENT_SERVICE_GRPC_PORT=50051
-set PAYMENT_DB_DSN=postgres://postgres:postgres@localhost:5432/payment_db?sslmode=disable
-go run ./cmd/payment-service
-```
+## 🛠 Engineering Decisions
 
-**Order Service:**
-```bash
-cd order-service
-set ORDER_SERVICE_PORT=8081
-set ORDER_SERVICE_GRPC_PORT=50052
-set ORDER_DB_DSN=postgres://postgres:postgres@localhost:5432/order_db?sslmode=disable
-set PAYMENT_SERVICE_GRPC_ADDR=localhost:50051
-go run ./cmd/order-service
-```
+### Idempotency Strategy
+The Notification Service uses an in-memory `sync.Map` to store processed Order IDs. Before processing a message, it checks if the ID exists. If it does, the message is acknowledged and skipped. 
+*(Note: This in-memory map is used for simplicity in this assignment. In a production system, this state would be persisted in Redis or a Database to survive service restarts).*
 
-### 3. Testing
-**Create an Order (REST):**
-```bash
-curl -X POST http://localhost:8081/orders ^
-  -H "Content-Type: application/json" ^
-  -H "Idempotency-Key: demo-1" ^
-  -d "{\"customer_id\":\"cust-1\",\"item_name\":\"Book\",\"amount\":15000}"
-```
+### Routing & Exchange
+Instead of relying purely on default exchanges, the system explicitly declares a `direct` exchange (`payment.exchange`). The queue is bound to this exchange with a specific routing key. This allows for flexible and scalable routing (e.g., adding a `fanout` or `topic` exchange later) without changing the consumer logic.
 
-**Listen to Real-Time Updates (gRPC Stream):**
-```bash
-cd order-service
-go run ./cmd/order-updates-client --addr localhost:50052 --order <ORDER_ID>
-```
+### Manual Acknowledgments (ACKs)
+Manual ACKs are enabled in the Notification Service (`auto-ack: false`). A message is only acknowledged (`d.Ack(false)`) after the simulated email is logged. If the service crashes during processing, RabbitMQ will requeue the message.
+
+### Reliability & DLQ
+- **Durable Queues & Persistent Messages:** All queues are declared as durable to survive broker restarts, and messages are published with `amqp.Persistent` delivery mode.
+- **Outbox Pattern Concept:** The producer implements a retry mechanism. If publishing fails critically, an error is returned up the stack. *In a true production environment, an Outbox Pattern would be implemented to guarantee message delivery even if the broker is temporarily down.*
+- **Consumer Error Handling & Prefetch:** The consumer uses a Prefetch (QoS) count of 1 for fair distribution. If processing fails (or a panic is recovered), the message is explicitly `Nack`ed and requeued (`d.Nack(false, true)`).
+- **DLQ:** If unmarshaling fails or a permanent error occurs, the message is `Nack`ed without requeue, moving it to the Dead Letter Exchange and then to the DLQ.
