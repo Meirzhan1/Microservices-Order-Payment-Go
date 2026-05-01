@@ -24,9 +24,10 @@ func (h *Handler) RegisterRoutes(r *gin.Engine) {
 }
 
 type createOrderRequest struct {
-	CustomerID string `json:"customer_id"`
-	ItemName   string `json:"item_name"`
-	Amount     int64  `json:"amount"`
+	CustomerID    string `json:"customer_id"`
+	CustomerEmail string `json:"customer_email"`
+	ItemName      string `json:"item_name"`
+	Amount        int64  `json:"amount"`
 }
 
 func (h *Handler) CreateOrder(c *gin.Context) {
@@ -39,6 +40,7 @@ func (h *Handler) CreateOrder(c *gin.Context) {
 	idempotencyKey := c.GetHeader("Idempotency-Key")
 	order, err := h.uc.CreateOrder(c.Request.Context(), usecase.CreateOrderInput{
 		CustomerID:     req.CustomerID,
+		CustomerEmail:  req.CustomerEmail,
 		ItemName:       req.ItemName,
 		Amount:         req.Amount,
 		IdempotencyKey: idempotencyKey,

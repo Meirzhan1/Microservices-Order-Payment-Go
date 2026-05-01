@@ -27,13 +27,14 @@ func NewGRPCPaymentClient(addr string, timeout time.Duration) (*GRPCPaymentClien
 	}, nil
 }
 
-func (c *GRPCPaymentClient) CreatePayment(ctx context.Context, orderID string, amount int64) (string, error) {
+func (c *GRPCPaymentClient) CreatePayment(ctx context.Context, orderID string, amount int64, customerEmail string) (string, error) {
 	callCtx, cancel := context.WithTimeout(ctx, c.timeout)
 	defer cancel()
 
 	resp, err := c.client.ProcessPayment(callCtx, &paymentv1.PaymentRequest{
-		OrderId: orderID,
-		Amount:  amount,
+		OrderId:       orderID,
+		Amount:        amount,
+		CustomerEmail: customerEmail,
 	})
 	if err != nil {
 		return "", err

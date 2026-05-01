@@ -24,7 +24,7 @@ type OrderRepository interface {
 }
 
 type PaymentClient interface {
-	CreatePayment(ctx context.Context, orderID string, amount int64) (string, error)
+	CreatePayment(ctx context.Context, orderID string, amount int64, customerEmail string) (string, error)
 }
 
 type OrderUseCase struct {
@@ -38,6 +38,7 @@ func NewOrderUseCase(repo OrderRepository, paymentClient PaymentClient) *OrderUs
 
 type CreateOrderInput struct {
 	CustomerID     string
+	CustomerEmail  string
 	ItemName       string
 	Amount         int64
 	IdempotencyKey string
@@ -60,20 +61,21 @@ func (uc *OrderUseCase) CreateOrder(ctx context.Context, input CreateOrderInput)
 
 	now := time.Now().UTC()
 	order := &domain.Order{
-		ID:         uuid.NewString(),
-		CustomerID: input.CustomerID,
-		ItemName:   input.ItemName,
-		Amount:     input.Amount,
-		Status:     domain.OrderStatusPending,
-		CreatedAt:  now,
-		UpdatedAt:  now,
+		ID:            uuid.NewString(),
+		CustomerID:    input.CustomerID,
+		CustomerEmail: input.CustomerEmail,
+		ItemName:      input.ItemName,
+		Amount:        input.Amount,
+		Status:        domain.OrderStatusPending,
+		CreatedAt:     now,
+		UpdatedAt:     now,
 	}
 
 	if err := uc.repo.Create(ctx, order, input.IdempotencyKey); err != nil {
 		return nil, err
 	}
 
-	paymentStatus, err := uc.paymentClient.CreatePayment(ctx, order.ID, order.Amount)
+	paymentStatus, err := uc.paymentClient.CreatePayment(ctx, order.ID, order.Amount, order.CustomerEmail)
 	if err != nil {
 		_ = uc.repo.UpdateStatus(ctx, order.ID, domain.OrderStatusFailed, time.Now().UTC())
 		order.Status = domain.OrderStatusFailed
