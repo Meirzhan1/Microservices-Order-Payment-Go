@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="DataSourcePerFileMappings">
+    <file url="file://$PROJECT_DIR$/.idea/queries/Query_1.sql" value="6ad690a1-525e-4314-8552-19cd199083f8" />
+    <file url="file://$PROJECT_DIR$/.idea/queries/Query_2.sql" value="6fd70f59-96bb-457e-b7bd-7727448315a3" />
+    <file url="file://$PROJECT_DIR$/order-service/migrations/001_create_orders.sql" value="6ad690a1-525e-4314-8552-19cd199083f8" />
+    <file url="file://$PROJECT_DIR$/payment-service/migrations/001_create_payments.sql" value="6fd70f59-96bb-457e-b7bd-7727448315a3" />
+  </component>
+</project>
