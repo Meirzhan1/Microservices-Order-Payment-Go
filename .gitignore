@@ -1,0 +1,27 @@
+# Secrets
+.env
+
+# IDE Settings
+.idea/
+.vscode/
+*.swp
+
+# Go Binaries and Build Artifacts
+bin/
+order-service/order-service
+payment-service/payment-service
+notification-service/notification-service
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Logs
+*.log
+
+# Dependencies
+vendor/
+
+# Docker
+.docker/
